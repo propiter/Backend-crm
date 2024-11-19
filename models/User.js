@@ -53,3 +53,42 @@ export async function findUserByCredentials(username, password) {
     throw error;
   }
 }
+
+// Funcion para actualizar contraseña:
+export async function updatePassword(username, oldPassword, newPassword) {
+  try {
+    const pool = await connectDB();
+
+    // Obtener datos del usuario por nombre de usuario
+    const result = await pool.request()
+      .input('usuario', sql.NVarChar, username)
+      .query('SELECT id, password FROM Usuarios WHERE usuario = @usuario');
+
+    const user = result.recordset[0];
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    // Verificar si la contraseña anterior coincide
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      throw new Error('La contraseña anterior no es correcta');
+    }
+
+    // Generar el hash de la nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 8);
+
+    // Actualizar la contraseña
+    const updateResult = await pool.request()
+      .input('id', sql.Int, user.id)
+      .input('password', sql.NVarChar, hashedPassword)
+      .query('UPDATE Usuarios SET password = @password WHERE id = @id');
+
+    return updateResult.rowsAffected[0] > 0
+      ? { message: 'Contraseña actualizada exitosamente' }
+      : { message: 'No se pudo actualizar la contraseña' };
+  } catch (error) {
+    console.error('Error al actualizar contraseña:', error);
+    throw error;
+  }
+}

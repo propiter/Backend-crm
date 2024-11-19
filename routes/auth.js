@@ -1,5 +1,5 @@
 import express from 'express';
-import { createUser, findUserByCredentials } from '../models/User.js';
+import { createUser, findUserByCredentials, updatePassword } from '../models/User.js';
 
 const router = express.Router();
 
@@ -28,6 +28,23 @@ router.post('/login', async (req, res) => {
     res.json({ user, token });
   } catch (error) {
     res.status(401).json({ error: 'Credenciales inválidas' });
+  }
+});
+
+
+// Actualizar contraseña
+router.patch('/password', async (req, res) => {
+  const { username, oldPassword, newPassword } = req.body;
+
+  if (!username || !oldPassword || !newPassword) {
+    return res.status(400).json({ error: 'Usuario, contraseña anterior y nueva son requeridos' });
+  }
+
+  try {
+    const result = await updatePassword(username, oldPassword, newPassword);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
